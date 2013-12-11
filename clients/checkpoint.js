@@ -26,18 +26,19 @@ CheckpointClient.prototype._registerFocusMessageHandler = function () {
 };
 
 CheckpointClient.prototype.login = function (provider, opts, cb) {
+  if (provider == null) {
+    throw new Error("No provider given")
+  }
+  if (typeof opts == 'function') {
+    cb = opts;
+    opts = {};
+  }
   opts || (opts = {});
   opts.pollInterval || (opts.pollInterval = 1000);
   opts.display || (opts.display = 'popup');
-  cb || (cb = function() {});
-
-  if (provider == null) {
-    throw new Error("Provider not selected")
-  }
 
   var params = [];
   params.push("display=" + opts.display);
-
   if (opts.redirectTo) {
     params.push("redirect_to=" + opts.redirectTo);
   }
@@ -50,7 +51,7 @@ CheckpointClient.prototype.login = function (provider, opts, cb) {
   
   var pollId = setInterval(poll.bind(this), opts.pollInterval);
 
-  function stop(err, me) {
+  function done(err, me) {
     if (!win.closed) win.close();
     window.focus();
     clearInterval(pollId);
@@ -59,12 +60,11 @@ CheckpointClient.prototype.login = function (provider, opts, cb) {
 
   function poll() {
     if (win.closed) {
-      stop("Login window closed by user");
+      done("Login window closed by user");
     }
     this.get("/identities/me", function(err, me) {
-      console.log(me)
       if (me.identity && !me.identity.provisional && me.accounts.indexOf(provider) > -1) {
-        stop(null, me);
+        done(null, me);
       }
     });
   };
